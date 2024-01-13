@@ -4,6 +4,7 @@ import os
 import requests
 import pandas as pd
 import numpy as np
+import urllib3
 
 from googlesearch import search
 from validate_email import validate_email
@@ -12,7 +13,7 @@ from bs4 import BeautifulSoup
 base_path = os.path.realpath(os.path.dirname(__file__))
 
 
-
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # ------------------------------------ Checking and returning org nr --------------------------------------
 def get_org_nr(value):
     value = str(value)
@@ -113,14 +114,20 @@ def check_emails(email_list):
 
 
 # ----------------------------- Use google to gather external info --------------------------------------
-def get_external_info(clean_name):
-    g_search = next(search(f"{clean_name} contact", num_results=1))
-    req = requests.get(g_search, headers={"User-Agent" : "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15"}, verify=False)
-    soup = BeautifulSoup(req.text, 'html.parser')
+def get_external_info(clean_name, google_search_count=1):
+    google_search = list(search(f"{clean_name} contact"))
+    websites = google_search[:google_search_count]
     email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    emails = []
+    for website in websites:
+        req = requests.get(website, headers={"User-Agent" : "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15"}, verify=False)
+        soup = BeautifulSoup(req.text, 'html.parser')
+        found_emails = list(set(re.findall(email_pattern, soup.get_text())))
+        for email in found_emails:
+            emails.append(email)
 
     # Return webiste, list of emails and response code
-    return {"website":g_search, "emails": list(set(re.findall(email_pattern, soup.get_text()))), "restricted": False if req.status_code == 200 else True}
+    return {"website":websites, "emails": emails, "restricted": False if req.status_code == 200 else True}
 
 
 
