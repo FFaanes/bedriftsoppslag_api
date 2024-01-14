@@ -4,6 +4,7 @@ from flask import Flask, request
 from flask_restful import Api, Resource
 
 from OrgOppslag.Search import search_company
+from OrgOppslag.UpdateData import update_brreg_files
 
 api_keys = ["test_api_key"]
 
@@ -18,8 +19,15 @@ class Bedrift(Resource):
         else:
             return {"error":"access restricted"}
 
+class OppdaterData(Resource):
+    def get(self):
+        if "api-key" in request.headers and request.headers["api-key"] in api_keys:
+            update_brreg_files()
+        else:
+            return {"error":"access restricted"}
 
 api.add_resource(Bedrift, "/bedrift/<nr_or_name>")
+api.add_resource(OppdaterData, "/api/oppdaterdata")
 
 if __name__ == "__main__":
     app.run(debug=True)

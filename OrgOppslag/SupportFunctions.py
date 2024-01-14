@@ -5,6 +5,7 @@ import requests
 import pandas as pd
 import numpy as np
 import urllib3
+from urllib import parse
 
 from googlesearch import search
 from validate_email import validate_email
@@ -122,13 +123,21 @@ def get_external_info(clean_name, google_search_count=1):
     for website in websites:
         req = requests.get(website, headers={"User-Agent" : "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15"}, verify=False)
         soup = BeautifulSoup(req.text, 'html.parser')
-        found_emails = list(set(re.findall(email_pattern, soup.get_text())))
+        found_emails = re.findall(email_pattern, soup.get_text())
         for email in found_emails:
             emails.append(email)
 
     # Return webiste, list of emails and response code
-    return {"website":websites, "emails": emails, "restricted": False if req.status_code == 200 else True}
+    return {"website":websites, "emails": list(set(emails)), "restricted": False if req.status_code == 200 else True}
 
+
+# ------------------------ Generate Context For rendering of company page --------------------------------------
+def generate_context(external_info, brreg_info):
+    return {"len_emails" : len(external_info["emails"]),
+                "iframe_company_name" : parse.quote(brreg_info["org_navn"]),
+                "registrertIMvaregisteret" : "Nei" if brreg_info["registrertIMvaregisteret"] == False else "Ja",
+                "underAvvikling" : "Nei" if brreg_info["underAvvikling"] == False else "Ja",
+                "underTvangsavviklingEllerTvangsopplosning" : "Nei" if brreg_info["underTvangsavviklingEllerTvangsopplosning"] == False else "Ja"}
 
 
 
