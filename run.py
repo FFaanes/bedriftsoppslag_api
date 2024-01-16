@@ -59,7 +59,7 @@ class Bedrift(Resource):
             
             # Add company to cache
             if type(company_info) == dict:
-                cachemanager.cache[1][nr_or_name] = company_info
+                cachemanager.cache[1][nr_or_name.lower()] = company_info
                 cachemanager.save_cache()
 
             return company_info
@@ -97,4 +97,4 @@ if __name__ == "__main__":
     # Create Cache Manager object
     cachemanager = CacheManager()
 
-    app.run(debug=True)
+    app.run(debug=True, host="127.0.0.1", port=5001)
