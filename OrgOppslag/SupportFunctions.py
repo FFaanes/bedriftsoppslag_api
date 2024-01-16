@@ -146,6 +146,8 @@ from difflib import SequenceMatcher
 def find_similar_companies(search, company_info, results):
     company_info["similarity_score"] = company_info["navn"].apply(lambda e: SequenceMatcher(None, search.upper(), e).ratio())
     sorted_df = company_info.sort_values(by=["similarity_score"], ascending=False)
+    if company_info.shape[0] < results:
+        results = company_info.shape[0]
 
     closest_results = [{"organisasjonsnummer" : int(sorted_df.iloc[i]["organisasjonsnummer"]),
                         "navn": str(sorted_df.iloc[i]["navn"]),
