@@ -73,9 +73,9 @@ class ClearCache(Resource):
 class SearchHistory(Resource):
     def get(self):
         if "api-key" in request.headers and request.headers["api-key"] in api_keys:
-
+            
             if "mode" in request.headers and request.headers["mode"] == "load":
-                return search_history_manager.load()
+                return search_history_manager.manage
             else:
                 search_history_manager.clear()
                 return "history deleted!"
@@ -87,7 +87,7 @@ class SearchHistory(Resource):
 class SearchCounts(Resource):
     def get(self):
         if "api-key" in request.headers and request.headers["api-key"] in api_keys:
-            return search_count_manager.load()
+            return search_count_manager.manage
         else:
             return {"error":"access restricted"}
 
