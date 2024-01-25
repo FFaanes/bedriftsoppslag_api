@@ -100,8 +100,8 @@ api.add_resource(ClearCache,"/api/clearcache")
 api.add_resource(SearchHistory,"/api/searchhistory")
 api.add_resource(SearchCounts, "/api/searchcounts")
 
-search_history_manager = Manager("cache")
-cache_manager = Manager("history")
+search_history_manager = Manager("history")
+cache_manager = Manager("cache")
 search_count_manager = Manager("count")
 
 
