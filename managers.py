@@ -11,18 +11,22 @@ class Manager:
             with open(f"{self.base_path}/{self.type}.dat", "wb") as f:
                 self.manage = [f"{self.type}", {}]
                 pickle.dump(self.manage, f)
+                f.close()
     
     def clear(self):
         with open(f"{self.base_path}/{self.type}.dat", "wb") as f:
             self.manage = [f"{self.type}", {}]
             pickle.dump(self.manage, f)
+            f.close()
 
 
     def save(self):
         with open(f"{self.base_path}/{self.type}.dat", "wb") as f:
             pickle.dump(self.manage, f)
+            f.close()
 
     
     def load(self):
         with open(f"{self.base_path}/{self.type}.dat", "rb") as f:
             return pickle.load(f)
+            f.close()
