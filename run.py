@@ -8,67 +8,14 @@ from flask_restful import Api, Resource
 
 from OrgOppslag.Search import search_company
 from OrgOppslag.UpdateData import update_brreg_files
+from managers import Manager
 
 
 app = Flask(__name__)
 api = Api(app)
-base_path = os.path.realpath(os.path.dirname(__file__))
 api_keys = ["test_api_key"]
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-
-# -------------------------------- Cache management  ------------------------------------------------------#
-class CacheManager:
-    def __init__(self):
-        try:
-            self.cache = self.load_cache_pickle()
-        except FileNotFoundError:
-            with open(f"{base_path}/cache.dat", "wb") as cachefile:
-                self.cache = ["cache", {}]
-                pickle.dump(self.cache, cachefile)
-    
-    def clear_cache(self):
-        with open(f"{base_path}/cache.dat", "wb") as cachefile:
-            self.cache = ["cache", {}]
-            pickle.dump(self.cache, cachefile)
-
-
-    def save_cache(self):
-        with open(f"{base_path}/cache.dat", "wb") as cachefile:
-            pickle.dump(self.cache, cachefile)
-
-    
-    def load_cache_pickle(self):
-        with open(f"{base_path}/cache.dat", "rb") as cachefile:
-            return pickle.load(cachefile)
-
-  
-
-class SearchHistoryManager:
-    def __init__(self):
-        try:
-            self.history = self.load_history_pickle()
-        except FileNotFoundError:
-            with open(f"{base_path}/history.dat", "wb") as historyfile:
-                self.history = ["history", {}]
-                pickle.dump(self.history, historyfile)
-    
-    def clear_history(self):
-        with open(f"{base_path}/history.dat", "wb") as historyfile:
-            self.history = ["history", {}]
-            pickle.dump(self.history, historyfile)
-
-
-    def save_history(self):
-        with open(f"{base_path}/history.dat", "wb") as historyfile:
-            pickle.dump(self.history, historyfile)
-
-    
-    def load_history_pickle(self):
-        with open(f"{base_path}/history.dat", "rb") as historyfile:
-            return pickle.load(historyfile)
-
 
 
 # -------------------------------- Get company info  ------------------------------------------------------#
@@ -78,20 +25,25 @@ class Bedrift(Resource):
 
             # Save History for statistics on admin page
             current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            searchhistorymanager.history[1][str(current_time)] = {"user": request.headers["current-user"], "search" : nr_or_name}
-            searchhistorymanager.save_history()
+            search_history_manager.manage[1][str(current_time)] = {"user": request.headers["current-user"], "search" : nr_or_name}
+            search_history_manager.save()
+
+            # Use search count manager to increment searches made by user
+            search_count_manager.manage[1].setdefault(request.headers["current-user"], 0)
+            search_count_manager.manage[1][request.headers["current-user"]] += 1
+            search_count_manager.save()
 
             # Return cached data if it exists.
-            if nr_or_name in cachemanager.cache[1]:
-                return cachemanager.cache[1][nr_or_name]
+            if nr_or_name in cache_manager.manage[1]:
+                return cache_manager.manage[1][nr_or_name]
 
             # Search the company
             company_info = search_company(nr_or_name, validate_emails=request.headers["validate-emails"], similar_results=5, google_search_count=int(request.headers["google-search-count"]))
             
             # Add company to cache
             if type(company_info) == dict:
-                cachemanager.cache[1][nr_or_name.lower()] = company_info
-                cachemanager.save_cache()
+                cache_manager.manage[1][nr_or_name.lower()] = company_info
+                cache_manager.save()
 
             return company_info
         else:
@@ -112,7 +64,7 @@ class OppdaterData(Resource):
 class ClearCache(Resource):
     def get(self):
         if "api-key" in request.headers and request.headers["api-key"] in api_keys:
-            cachemanager.clear_cache()
+            cache_manager.clear()
         else:
             return {"error":"access restricted"}
 
@@ -123,17 +75,21 @@ class SearchHistory(Resource):
         if "api-key" in request.headers and request.headers["api-key"] in api_keys:
 
             if "mode" in request.headers and request.headers["mode"] == "load":
-                return searchhistorymanager.load_history_pickle()
+                return search_history_manager.load()
             else:
-                searchhistorymanager.clear_history()
+                search_history_manager.clear()
                 return "history deleted!"
 
         else:
             return {"error":"access restricted"}
 
 
-
-
+class SearchCounts(Resource):
+    def get(self):
+        if "api-key" in request.headers and request.headers["api-key"] in api_keys:
+            return search_count_manager.load()
+        else:
+            return {"error":"access restricted"}
 
 
 # -------------------------------- Prepare and run app  ------------------------------------------------------#
@@ -142,9 +98,12 @@ api.add_resource(Bedrift, "/bedrift/<nr_or_name>")
 api.add_resource(OppdaterData, "/api/oppdaterdata")
 api.add_resource(ClearCache,"/api/clearcache")
 api.add_resource(SearchHistory,"/api/searchhistory")
+api.add_resource(SearchCounts, "/api/searchcounts")
+
+search_history_manager = Manager("cache")
+cache_manager = Manager("history")
+search_count_manager = Manager("count")
+
 
 if __name__ == "__main__":
-    searchhistorymanager = SearchHistoryManager()
-    cachemanager = CacheManager()
-
     app.run(debug=True, host="127.0.0.1", port=5001)
