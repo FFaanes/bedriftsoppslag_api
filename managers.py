@@ -28,5 +28,6 @@ class Manager:
     
     def load(self):
         with open(f"{self.base_path}/{self.type}.dat", "rb") as f:
-            return pickle.load(f)
+            self.manage = pickle.load(f)
             f.close()
+            return self.manage
