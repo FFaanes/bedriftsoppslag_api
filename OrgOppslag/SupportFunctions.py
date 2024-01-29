@@ -18,21 +18,17 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # ------------------------------------ Checking and returning org nr --------------------------------------
 def get_org_nr(value):
     value = str(value)
-    if len(value) == 9:
-        try:
-            org_nr = int(value)
-            return org_nr
-        except ValueError:
-            pass
+    if value.isnumeric() == True and len(value) == 9:
+        return int(value)
+
     else:
         org_df = pd.read_csv(os.path.join(base_path, f"./data/{ord(value[0].lower())}.csv"))
         try:
             return int(org_df[org_df["navn"] == value.upper()].iat[0,0])
         except IndexError:
             return org_df
-    return None
-    
 
+    
 
 # ------------------------------------ Request information from brreg --------------------------------------
 def get_brreg_info(org_nr):
